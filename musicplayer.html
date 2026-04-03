@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Music Player</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #00ff00;
+    color: #2d1faa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .player {
+    width: 320px;
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  }
+
+  .song-info {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  .song-info h3 {
+    margin: 5px 0;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+  }
+
+  button {
+    background: #333;
+    border: none;
+    color: white;
+    padding: 10px;
+    margin: 0 5px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #555;
+  }
+
+  .progress-container {
+    width: 100%;
+  }
+
+  input[type="range"] {
+    width: 100%;
+  }
+
+  .time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+
+  .volume {
+    margin-top: 10px;
+  }
+
+  .playlist {
+    margin-top: 15px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .playlist div {
+    padding: 5px;
+    cursor: pointer;
+  }
+
+  .playlist div:hover {
+    background: #333;
+  }
+
+  .active {
+    background: #444;
+  }
+</style>
+</head>
+<body>
+
+<div class="player">
+  <div class="song-info">
+    <h3 id="title">Title</h3>
+    <p id="artist">Artist</p>
+  </div>
+
+  <audio id="audio"></audio>
+
+  <div class="progress-container">
+    <input type="range" id="progress" value="0">
+    <div class="time">
+      <span id="current-time">0:00</span>
+      <span id="duration">0:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button onclick="prevSong()">⏮</button>
+    <button onclick="togglePlay()" id="playBtn">▶</button>
+    <button onclick="nextSong()">⏭</button>
+  </div>
+
+  <div class="volume">
+    Volume:
+    <input type="range" id="volume" min="0" max="1" step="0.01">
+  </div>
+
+  <div class="playlist" id="playlist"></div>
+</div>
+
+<script>
+const songs = [
+  {
+    title: "Song One",
+    artist: "Artist A",
+    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+  },
+  {
+    title: "Song Two",
+    artist: "Artist B",
+    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+  },
+  {
+    title: "Song Three",
+    artist: "Artist C",
+    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+  }
+];
+
+let currentIndex = 0;
+const audio = document.getElementById("audio");
+const title = document.getElementById("title");
+const artist = document.getElementById("artist");
+const progress = document.getElementById("progress");
+const currentTimeEl = document.getElementById("current-time");
+const durationEl = document.getElementById("duration");
+const volume = document.getElementById("volume");
+const playBtn = document.getElementById("playBtn");
+const playlistEl = document.getElementById("playlist");
+
+// Load song
+function loadSong(index) {
+  const song = songs[index];
+  audio.src = song.src;
+  title.textContent = song.title;
+  artist.textContent = song.artist;
+  highlightActive();
+}
+
+// Play / Pause
+function togglePlay() {
+  if (audio.paused) {
+    audio.play();
+    playBtn.textContent = "⏸";
+  } else {
+    audio.pause();
+    playBtn.textContent = "▶";
+  }
+}
+
+// Next
+function nextSong() {
+  currentIndex = (currentIndex + 1) % songs.length;
+  loadSong(currentIndex);
+  audio.play();
+  playBtn.textContent = "⏸";
+}
+
+// Previous
+function prevSong() {
+  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+  loadSong(currentIndex);
+  audio.play();
+  playBtn.textContent = "⏸";
+}
+
+// Update progress
+audio.addEventListener("timeupdate", () => {
+  const { duration, currentTime } = audio;
+  progress.value = (currentTime / duration) * 100 || 0;
+
+  currentTimeEl.textContent = formatTime(currentTime);
+  durationEl.textContent = formatTime(duration);
+});
+
+// Seek
+progress.addEventListener("input", () => {
+  audio.currentTime = (progress.value / 100) * audio.duration;
+});
+
+// Volume
+volume.addEventListener("input", () => {
+  audio.volume = volume.value;
+});
+
+// Format time
+function formatTime(time) {
+  if (isNaN(time)) return "0:00";
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+// Autoplay next
+audio.addEventListener("ended", nextSong);
+
+// Playlist UI
+function loadPlaylist() {
+  playlistEl.innerHTML = "";
+  songs.forEach((song, index) => {
+    const div = document.createElement("div");
+    div.textContent = `${song.title} - ${song.artist}`;
+    div.onclick = () => {
+      currentIndex = index;
+      loadSong(index);
+      audio.play();
+      playBtn.textContent = "⏸";
+    };
+    playlistEl.appendChild(div);
+  });
+}
+
+// Highlight active song
+function highlightActive() {
+  const items = playlistEl.children;
+  for (let i = 0; i < items.length; i++) {
+    items[i].classList.toggle("active", i === currentIndex);
+  }
+}
+
+// Init
+loadSong(currentIndex);
+loadPlaylist();
+volume.value = 0.5;
+audio.volume = 0.5;
+
+</script>
+
+</body>
+</html>
